@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>观测单位沿革分析台 · 虚构件量观测网络</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="viz-root" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <strong>观测单位沿革分析台</strong>
+      <span class="subtitle">虚构物流站点件量观测网络 · 双口径并列 · 单位调整不记业务增长</span>
+    </div>
+    <div class="topbar-right">
+      <span id="data-window" class="pill"></span>
+      <button class="ghost" id="theme-toggle" type="button">切换暗色</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="overview" role="tab">总览</button>
+    <button class="tab" data-tab="unit" role="tab">单位分析</button>
+    <button class="tab" data-tab="compare" role="tab">版本对比</button>
+    <button class="tab" data-tab="lineage" role="tab">沿革审阅</button>
+    <button class="tab" data-tab="source" role="tab">来源与隔离</button>
+    <button class="tab" data-tab="runs" role="tab">重算与审计</button>
+  </nav>
+
+  <!-- 全局筛选行（作用于其下所有图表） -->
+  <div class="filter-row">
+    <label>分析版
+      <select id="global-av"></select>
+    </label>
+    <label>期间范围
+      <select id="range-preset">
+        <option value="all">全部期间</option>
+        <option value="24">最近 24 个月</option>
+        <option value="12">最近 12 个月</option>
+        <option value="6">最近 6 个月</option>
+      </select>
+    </label>
+    <span class="filter-hint" id="filter-hint"></span>
+  </div>
+
+  <main>
+    <!-- 1. 总览 -->
+    <section class="panel active" id="tab-overview">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="card">
+        <div class="card-head">
+          <h2>队列双口径对比</h2>
+          <div class="inline-controls">
+            <label>队列 <select id="overview-cohort"></select></label>
+          </div>
+        </div>
+        <p class="card-note" id="cohort-note"></p>
+        <div id="cohort-chart" class="chart"></div>
+        <div class="table-toggle"><button class="ghost small" data-table="cohort-table">查看数据表</button></div>
+        <div class="table-wrap hidden" id="cohort-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>队列总览（最新期间）</h2></div>
+        <div class="table-wrap" id="cohort-summary"></div>
+      </div>
+    </section>
+
+    <!-- 2. 单位分析 -->
+    <section class="panel" id="tab-unit">
+      <div class="card">
+        <div class="card-head">
+          <h2>单位双口径序列</h2>
+          <div class="inline-controls">
+            <label>单位 <select id="unit-select"></select></label>
+          </div>
+        </div>
+        <p class="card-note" id="unit-note"></p>
+        <div id="unit-chart" class="chart"></div>
+        <div class="table-toggle"><button class="ghost small" data-table="unit-table">查看数据表</button></div>
+        <div class="table-wrap hidden" id="unit-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>环比变化分解：结构调整 vs 有机增长</h2>
+          <span class="legend" id="decomp-legend"></span>
+        </div>
+        <p class="card-note">条在零轴上方为正、下方为负；灰色为单位边界调整（拆/合/迁址承接或交出的件量），
+          蓝色为剔除调整后的真实业务变化。恒等式：总变化 = 结构调整 + 有机变化。</p>
+        <div id="decomp-chart" class="chart"></div>
+        <div class="table-toggle"><button class="ghost small" data-table="decomp-table">查看数据表</button></div>
+        <div class="table-wrap hidden" id="decomp-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>异常贡献追溯</h2>
+          <div class="inline-controls">
+            <label>期间 <select id="trace-period"></select></label>
+            <button class="ghost small" id="trace-run">追溯该期间来源事件</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="trace-table"><p class="muted">选择期间后点击追溯。</p></div>
+      </div>
+    </section>
+
+    <!-- 3. 版本对比 -->
+    <section class="panel" id="tab-compare">
+      <div class="card">
+        <div class="card-head">
+          <h2>两个分析版并列（修订映射后生成新分析版，旧版保留）</h2>
+          <div class="inline-controls">
+            <label>版本 A <select id="compare-a"></select></label>
+            <label>版本 B <select id="compare-b"></select></label>
+            <label>单位 <select id="compare-unit"></select></label>
+          </div>
+        </div>
+        <p class="card-note" id="compare-note"></p>
+        <div id="compare-chart" class="chart"></div>
+        <div class="table-toggle"><button class="ghost small" data-table="compare-table">查看数据表</button></div>
+        <div class="table-wrap hidden" id="compare-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>逐期间差异（B 重述 − A 重述）</h2></div>
+        <div class="table-wrap" id="diff-table"></div>
+      </div>
+    </section>
+
+    <!-- 4. 沿革审阅 -->
+    <section class="panel" id="tab-lineage">
+      <div class="card">
+        <div class="card-head">
+          <h2>拆 / 合 / 迁址关系审阅</h2>
+          <div class="inline-controls">
+            <label>映射版本 <select id="lineage-vid"></select></label>
+            <button class="ghost small" id="revise-btn">基于当前版修订出新版本</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="edges-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>沿革图（节点=规范单位，边标注类型/权重/生效期）</h2></div>
+        <div id="lineage-graph" class="graph"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>上报代码有效期映射（同一统计名称在不同期间可指向不同单位）</h2></div>
+        <div class="table-wrap" id="entries-table"></div>
+      </div>
+    </section>
+
+    <!-- 5. 来源与隔离 -->
+    <section class="panel" id="tab-source">
+      <div class="kpi-row" id="source-kpi"></div>
+      <div class="card">
+        <div class="card-head">
+          <h2>隔离区（不合法数据不静默丢弃）</h2>
+          <div class="inline-controls">
+            <button class="ghost small" id="ingest-demo">投递演示新批次</button>
+          </div>
+        </div>
+        <p class="card-note">退役单位/未知代码不能直接放行——必须先在沿革映射中处理接续关系或补主数据。</p>
+        <div class="table-wrap" id="quarantine-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>源事件（可展开到映射与来源）</h2>
+          <div class="inline-controls">
+            <label>状态
+              <select id="event-status">
+                <option value="">全部</option>
+                <option value="accepted">已接受</option>
+                <option value="quarantined">隔离中</option>
+                <option value="rejected">已拒绝</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="table-wrap" id="events-table"></div>
+      </div>
+    </section>
+
+    <!-- 6. 重算与审计 -->
+    <section class="panel" id="tab-runs">
+      <div class="card">
+        <div class="card-head">
+          <h2>分析运行与检查点恢复</h2>
+          <div class="inline-controls">
+            <button class="ghost small" id="demo-interrupt">演练：启动后自动中断再恢复</button>
+          </div>
+        </div>
+        <p class="card-note">运行逐期间落检查点；中断后从最后完成期间的下一期续算，结果与一次跑完逐行一致。</p>
+        <div class="table-wrap" id="runs-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>审计日志</h2></div>
+        <div class="table-wrap audit" id="audit-table"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="tooltip" class="tooltip hidden" role="status"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+</div>
+<script src="app.js"></script>
+<script src="app-tabs.js"></script>
+<script src="app-admin.js"></script>
+</body>
+</html>
